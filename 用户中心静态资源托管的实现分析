@@ -1,0 +1,26 @@
+目前用户中心的静态页面都部署在aliyun的对象存储oss服务器上。对静态资源的访问会跳到oss服务器上。
+aliyun支持绑定自定义域名的静态资源访问，参考https://help.aliyun.com/document_detail/31836.html?spm=a2c4g.11186623.4.3.6b6c3adfqXyiAq
+但用户中心的 aliyun-oss-starter-handler工程，也通过重写Handler的方法也实现了，以下是分析：
+1.通过继承AbstractHandlerMapping, 重写getHandlerInternal方法，切换到自定义的resourceHandler(AliyunOSSRequestHandler);
+2.AliyunOSSRequestHandler重写ResourceHttpRequestHandler的getResource接口，实现了从oss服务器上访问静态资源。
+HttpRequestHandlerAdapter.handle调用：
+  ((ResourceHttpRequestHandler) handler).handleRequest(request, response);调用
+    Resource resource = getResource(request); 
+      调用AliyunOSSRequestHandler.getResource
+  
+以下是调用栈：
+doGet(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.FrameworkServlet    
+  processRequest(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.FrameworkServlet
+    doService(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.DispatcherServlet
+       doDispatch(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.DispatcherServlet
+          getHandler(HttpServletRequest) : HandlerExecutionChain - org.springframework.web.servlet.DispatcherServlet
+              getHandler(HttpServletRequest) : HandlerExecutionChain - org.springframework.web.servlet.handler.AbstractHandlerMapping
+                 getHandlerInternal(HttpServletRequest) : Object - AliyunOSSHandlerMapping  
+
+doGet(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.FrameworkServlet
+  processRequest(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.FrameworkServlet
+    doService(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.DispatcherServlet
+      doDispatch(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.DispatcherServlet
+        handle(HttpServletRequest, HttpServletResponse, Object) : ModelAndView - org.springframework.web.servlet.mvc.HttpRequestHandlerAdapter
+          handleRequest(HttpServletRequest, HttpServletResponse) : void - org.springframework.web.servlet.resource.ResourceHttpRequestHandler
+            getResource(HttpServletRequest) : Resource - AliyunOSSRequestHandler
