@@ -1,0 +1,84 @@
+Mybatis中Dao有2种开发方式
+1.原始dao的开发方式
+2.Mapper代理的开发方式
+用中心使用的是第一种开发方式，通用开发步骤如下：
+1.配置User.xml
+2.开发dao及其实现类
+3.配置dao
+在用户中心的具体开发的方式是：
+1.定义OrgRelationshipMapper.xml文件，在其中定义命名空间OrgRelationship：
+<?xml version="1.0" encoding="UTF-8" ?>
+ 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="OrgRelationship">
+    <resultMap id="OrgRelationshipMap" type="OrgRelationship">
+    ...
+    </resultMap>
+    <sql id="tb">
+        org_relationship
+    </sql>
+    <sql id="cols_all">
+      id, <include refid="cols_exclude_id" />
+    </sql>
+    <select id="findByOrgId" parameterType="long" resultMap="OrgRelationshipMap" >
+        SELECT <include refid="cols_all" />
+        FROM <include refid="tb" />
+        WHERE org_id = #{orgId}
+    </select>
+</mapper>
+
+2.开发Dao层OrgRelationshipDao，定义接口实现：
+@Repository
+public class OrgRelationshipDao extends GammaOrgDao<OrgRelationship> {
+    @Override
+    @Resource(name = sqlSessionFactoryName)
+    public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+        super.init(sqlSessionFactory);
+    }
+    public List<OrgRelationship> findByOrgId(Long orgId) {
+        return getSqlSession().selectList(sqlId("findByOrgId"), orgId);
+    }
+}
+GammaOrgDao的实现如下：
+public abstract class GammaOrgDao<T> extends BaseDao<T> {
+    public final static String sqlSessionFactoryName = "defaultUserSqlSessionFactory";
+    @Override
+    @Autowired
+    @Resource(name = sqlSessionFactoryName)
+    public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+        super.init(sqlSessionFactory);
+    }
+}
+
+BaseDao的主要实现如下，注意dao中定义了sqlId方法，用户获取命名空间：
+ 展开源码
+3.在yml中配置扫描的包：
+mybatis:
+  url: "jdbc:mysql://${local.db.host:local.mysql.egrp.top:3306}/${local.db.name:_1id_user2b}?useUnicode=true&characterEncoding=UTF8&allowMultiQueries=true"
+  username: ${local.db.username:root}
+  password: ${local.db.password:123456}
+  mapper-locations: classpath*:/mapper/user/*Mapper.xml
+  driver-class-name: com.mysql.jdbc.Driver
+  type-aliases-patterns:
+    - classpath*:com/dtdream/gamma/**/model/*.class
+    - classpath*:com/dtdream/gamma/basicuser/dto/*.class
+  data-source-name: defaultUserDataSourceName
+  transaction-manager-name: defaultUserDataSourceTransactionManager
+  sql-session-template-name: defaultUserSqlSessionTemplate
+  sql-session-factory-name: defaultUserSqlSessionFactory
+  transaction-manager-packages:
+    - com.dtdream.gamma.account.manager.*
+    - com.dtdream.gamma.basicuser.manager.*
+    - com.dtdream.gamma.member.manager.*
+    - com.dtdream.gamma.organization.manager.*
+    - com.dtdream.gamma.point.manager.*
+    - com.dtdream.gamma.privilege.manager.*
+    - com.dtdream.gamma.ruleengine.manager.*
+    - com.dtdream.gamma.tag.manager.*
+    - com.dtdream.gamma.wbapp.center.manager.*
+    - com.dtdream.gamma.address.manager.*
+
+总体来说这种方法比较低效，过时了。
+
+参考：
+https://blog.csdn.net/qq_36381855/article/details/78309869
