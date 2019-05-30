@@ -1,0 +1,23 @@
+
+filter user login ?
+ShiroAutoConfiguration.shiroFilter,使用AbstractShiroFilter 过滤用户当前状态
+
+接口调用栈如下：
+AbstractShiroFilter.doFilterInternal
+DefaultSecurityManager.createSubject(SubjectContext)
+                                    ...resolveSession(SubjectContext)
+                                    ...resolveContextSession(SubjectContext)
+SessionsSecurityManager.getSession(SessionKey)
+AbstractNativeSessionManager.getSession(SessionKey);
+AbstractValidatingSessionManager.doGetSession(SessionKey);
+获取session的代码实现：
+  @Override
+    protected final Session doGetSession(final SessionKey key) throws InvalidSessionException {
+        enableSessionValidationIfNecessary();
+        log.trace("Attempting to retrieve session with key {}", key);
+        Session s = retrieveSession(key);  //sessionDAO.readSession(sessionId);
+        if (s != null) {
+            validate(s, key);
+        }
+        return s;
+    }
