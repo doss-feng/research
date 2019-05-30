@@ -1,0 +1,30 @@
+以下调用栈显示：在shiro框架中，用户登录之后，生成的session信息如何cache到redis中的。 
+ 
+ LoginController.login
+ DelegatingSubject.login(token); 
+ DefaultWebSecurityManager(DefaultSecurityManager).login(Subject, AuthenticationToken)
+ DefaultWebSecurityManager(DefaultSecurityManager).createSubject(AuthenticationToken, AuthenticationInfo, Subject) line: 183 
+ DefaultWebSecurityManager(DefaultSecurityManager).save(Subject) line: 383 
+ DefaultSubjectDAO.save(Subject) line: 147 
+ DefaultSubjectDAO.saveToSession(Subject) line: 166 
+ DefaultSubjectDAO.mergePrincipals(Subject) line: 204 
+ WebDelegatingSubject(DelegatingSubject).getSession() line: 312 
+ WebDelegatingSubject(DelegatingSubject).getSession(boolean) line: 336 
+ DefaultWebSecurityManager(SessionsSecurityManager).start(SessionContext) line: 121 
+ AbstractNativeSessionManager(UaaWebSessionManager).start(SessionContext) line: 59
+ AbstractValidatingSessionManager.createSession(SessionContext) line: 136
+ DefaultSessionManager.doCreateSession(SessionContext) line: 158
+ DefaultSessionManager.create(SessionContext) line: 177
+ CachingSessionDAO(EnterpriseCacheSessionDAO).create(Session) line: 184
+ CachingSessionDAO(EnterpriseCacheSessionDAO).cache(Session) line: 227
+ //以下是CachesessionDao的cache实现
+ protected void cache(Session session, Serializable sessionId) {
+        if (session == null || sessionId == null) {
+            return;
+        }
+        Cache<Serializable, Session> cache = getActiveSessionsCacheLazy();
+        if (cache == null) {
+            return;
+        }
+        cache(session, sessionId, cache);  //  cache.put(sessionId, session);  cache在JedisCacheManager中定义，JedisShiroCache 类。
+    }
